@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f766e">
+<title>SkinType Cabinet</title>
+<style>
+:root{--bg:#f4f7f6;--card:#fff;--ink:#18312f;--muted:#687876;--accent:#0f766e;--accent2:#dff3ef;--line:#d9e4e1}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.wrap{max-width:720px;margin:auto;padding:20px 16px 36px}.brand{text-transform:uppercase;letter-spacing:.18em;font-size:12px;color:var(--accent);font-weight:700}
+h1{font-size:30px;line-height:1.1;margin:8px 0 6px}.sub{color:var(--muted);margin:0 0 18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:22px;box-shadow:0 8px 28px rgba(24,49,47,.06)}
+.top{display:flex;justify-content:space-between;color:var(--muted);font-size:14px}.bar{height:7px;background:#e7efed;border-radius:10px;margin:10px 0 24px;overflow:hidden}.bar>i{display:block;height:100%;background:var(--accent);width:0}
+.q{font-size:23px;line-height:1.25;margin:0 0 18px}.hint{font-size:14px;color:var(--muted);margin-top:-8px;margin-bottom:18px}
+.answers{display:grid;gap:11px}.answer{border:1px solid var(--line);background:#fff;border-radius:15px;padding:16px;text-align:left;font-size:16px;color:var(--ink);cursor:pointer}
+.answer:active,.answer.sel{border-color:var(--accent);background:var(--accent2)}
+.nav{display:flex;gap:10px;margin-top:20px}.btn{flex:1;border:0;border-radius:14px;padding:15px;font-size:16px;font-weight:700;cursor:pointer}.prev{background:#eef3f1;color:var(--ink)}.next{background:var(--accent);color:#fff}.next:disabled{opacity:.4}
+.hidden{display:none!important}.result h2{font-size:27px;margin:0 0 6px}.lead{color:var(--muted);margin-top:0}.pill{display:inline-block;background:var(--accent2);color:var(--accent);padding:7px 11px;border-radius:999px;font-weight:700;margin:4px 5px 4px 0}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:18px 0}.metric{border:1px solid var(--line);border-radius:15px;padding:14px}.metric b{display:block;font-size:18px}.metric span{font-size:13px;color:var(--muted)}
+.box{border-top:1px solid var(--line);padding-top:16px;margin-top:18px}.box h3{margin:0 0 8px}.box p{margin:6px 0;color:#405351;line-height:1.45}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px}.actions .btn{background:#eef3f1}.actions .primary{background:var(--accent);color:#fff}
+footer{text-align:center;color:#8a9996;font-size:12px;margin-top:18px}
+@media(max-width:560px){.wrap{padding:16px 12px 28px}.card{padding:18px}.q{font-size:21px}.grid{grid-template-columns:1fr 1fr}}
+@media print{body{background:#fff}.wrap{max-width:none}.card{box-shadow:none}.actions,.nav,.bar,.top{display:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">Cabinet de médecine esthétique</div>
+  <h1>SkinType Cabinet</h1>
+  <p class="sub">Analyse cutanée guidée par questionnaire</p>
+
+  <section id="quiz" class="card">
+    <div class="top"><span id="count">Question 1 / 20</span><span id="pct">5 %</span></div>
+    <div class="bar"><i id="bar"></i></div>
+    <h2 id="question" class="q"></h2>
+    <p id="hint" class="hint"></p>
+    <div id="answers" class="answers"></div>
+    <div class="nav">
+      <button id="prev" class="btn prev">Précédent</button>
+      <button id="next" class="btn next" disabled>Suivant</button>
+    </div>
+  </section>
+
+  <section id="result" class="card result hidden">
+    <h2 id="resultTitle"></h2>
+    <p id="resultLead" class="lead"></p>
+    <div id="pills"></div>
+    <div id="metrics" class="grid"></div>
+    <div class="box"><h3>Lecture clinique</h3><p id="reading"></p></div>
+    <div class="box"><h3>Orientations esthétiques</h3><p id="advice"></p></div>
+    <div class="box"><h3>Priorités de prise en charge</h3><p id="priorities"></p></div>
+    <div class="actions">
+      <button class="btn primary" onclick="window.print()">Imprimer / PDF</button>
+      <button class="btn" onclick="restart()">Nouveau bilan</button>
+    </div>
+  </section>
+  <footer>Outil d'aide à l'évaluation — ne remplace pas l'examen clinique.</footer>
+</div>
+
+<script>
+const questions=[
+["Après nettoyage et avant application d'un produit, votre peau tiraille-t-elle ?","Choisissez la réponse qui correspond le mieux à la situation habituelle.",["Jamais","Rarement","Parfois","Souvent","Presque toujours"],"dry"],
+["En milieu de journée, votre peau a-t-elle tendance à briller ?","Observez surtout le front, le nez et le menton.",["Pas du tout","Un peu","Modérément","Beaucoup","Très fortement"],"oil"],
+["Comment décririez-vous vos pores au niveau du nez et des joues ?","",["Quasiment invisibles","Peu visibles","Modérément visibles","Bien visibles","Très dilatés"],"pores"],
+["Votre peau devient-elle brillante rapidement après le nettoyage ?","",["Jamais","Après plusieurs heures","Après 2–3 heures","En moins de 2 heures","Très rapidement"],"oil"],
+["Avez-vous des zones qui pèlent ou présentent des petites squames ?","",["Jamais","Rarement","Parfois","Souvent","Très souvent"],"dry"],
+["Avez-vous des rougeurs du visage ?","",["Jamais","Occasionnelles","Régulières","Fréquentes","Très fréquentes"],"red"],
+["Votre peau réagit-elle facilement aux cosmétiques ou soins ?","Picotements, échauffement ou inconfort.",["Jamais","Rarement","Parfois","Souvent","Très facilement"],"sens"],
+["La peau chauffe-t-elle ou picote-t-elle avec certains produits ?","",["Jamais","Rarement","Parfois","Souvent","Très souvent"],"sens"],
+["Avez-vous des boutons ou imperfections inflammatoires ?","",["Jamais","Exceptionnellement","Par moments","Régulièrement","Très fréquemment"],"blem"],
+["Avez-vous des points noirs ou comédons ?","",["Jamais","Très peu","Quelques-uns","Nombreux","Très nombreux"],"blem"],
+["Votre peau semble-t-elle manquer d'eau malgré une sensation de gras ?","",["Jamais","Rarement","Parfois","Souvent","Très souvent"],"dehyd"],
+["Après une journée, votre teint paraît-il terne ou fatigué ?","",["Jamais","Rarement","Parfois","Souvent","Très souvent"],"dull"],
+["Avez-vous des taches brunes ou une pigmentation irrégulière ?","",["Non","Très légère","Légère","Modérée","Importante"],"pig"],
+["Les taches apparaissent-elles après boutons, inflammation ou soleil ?","",["Jamais","Rarement","Parfois","Souvent","Très souvent"],"pig"],
+["Avez-vous une sensation de perte de fermeté ?","",["Non","Très légère","Légère","Modérée","Importante"],"age"],
+["Avez-vous des ridules visibles au repos ou à l'expression ?","",["Non","Très peu","Quelques-unes","Nombreuses","Très nombreuses"],"age"],
+["Votre peau paraît-elle irrégulière au toucher ou au niveau de la texture ?","",["Très lisse","Plutôt lisse","Moyenne","Irrégulière","Très irrégulière"],"texture"],
+["Avez-vous des cicatrices d'acné ou marques persistantes ?","",["Non","Très peu","Quelques-unes","Plusieurs","Nombreuses"],"scar"],
+["Votre peau est-elle plus grasse dans la zone T que sur les joues ?","",["Pas du tout","Un peu","Modérément","Beaucoup","Très nettement"],"mix"],
+["Après une exposition au soleil, votre peau présente-t-elle facilement des irrégularités ou taches ?","",["Jamais","Rarement","Parfois","Souvent","Très facilement"],"photo"]
+];
+let i=0,answers=Array(questions.length).fill(null);
+const $=id=>document.getElementById(id);
+function render(){
+ const q=questions[i], n=questions.length;
+ $("count").textContent=`Question ${i+1} / ${n}`;
+ $("pct").textContent=Math.round((i+1)/n*100)+" %";
+ $("bar").style.width=((i+1)/n*100)+"%";
+ $("question").textContent=q[0]; $("hint").textContent=q[1];
+ $("answers").innerHTML="";
+ q[2].forEach((txt,k)=>{
+   const b=document.createElement("button"); b.className="answer"+(answers[i]===k?" sel":""); b.textContent=txt;
+   b.onclick=()=>{answers[i]=k;render()}; $("answers").appendChild(b);
+ });
+ $("prev").disabled=i===0; $("next").disabled=answers[i]===null;
+ $("next").textContent=i===n-1?"Voir le bilan":"Suivant";
+}
+$("prev").onclick=()=>{if(i>0){i--;render()}};
+$("next").onclick=()=>{if(i<questions.length-1){i++;render()}else{showResult()}};
+function score(type){let s=0;questions.forEach((q,j)=>{if(q[3]===type&&answers[j]!=null)s+=answers[j]});return s}
+function labelBase(){
+ const dry=score("dry"), oil=score("oil"), mix=score("mix");
+ if(oil>=dry+3)return "Peau grasse";
+ if(dry>=oil+3)return "Peau sèche";
+ if(Math.abs(oil-dry)<=2 || mix>=3)return "Peau mixte";
+ return "Peau normale";
+}
+function level(s){return s>=7?"élevé":s>=4?"modéré":"faible"}
+function showResult(){
+ const base=labelBase(), sens=score("sens"), red=score("red"), dehyd=score("dehyd"), blem=score("blem"), pig=score("pig"), age=score("age"), texture=score("texture"), scar=score("scar"), photo=score("photo"), pores=score("pores");
+ const tags=[];
+ if(dehyd>=4)tags.push("Déshydratation");
+ if(sens>=4||red>=4)tags.push("Peau sensible/réactive");
+ if(blem>=4)tags.push("Tendance acnéique");
+ if(pig>=4)tags.push("Dyschromies");
+ if(age>=4)tags.push("Photo-vieillissement");
+ if(pores>=4)tags.push("Pores dilatés");
+ $("resultTitle").textContent=base;
+ $("resultLead").textContent="Profil cutané synthétique à confronter à l'examen clinique.";
+ $("pills").innerHTML=tags.map(x=>`<span class="pill">${x}</span>`).join("")||'<span class="pill">Profil global équilibré</span>';
+ const data=[["Déshydratation",level(dehyd)],["Sensibilité",level(sens)],["Rougeurs",level(red)],["Imperfections",level(blem)],["Pigmentation",level(pig)],["Vieillissement",level(age)]];
+ $("metrics").innerHTML=data.map(x=>`<div class="metric"><b>${x[1]}</b><span>${x[0]}</span></div>`).join("");
+ let reading=`Le questionnaire oriente vers une ${base.toLowerCase()}. `;
+ if(dehyd>=4)reading+="La composante de déshydratation est notable. ";
+ if(sens>=4||red>=4)reading+="Une tendance à la réactivité cutanée est retrouvée. ";
+ if(blem>=4)reading+="Les imperfections et/ou comédons constituent un axe important. ";
+ if(pig>=4)reading+="Une composante pigmentaire mérite une évaluation clinique. ";
+ if(age>=4||photo>=4)reading+="Des signes compatibles avec le photo-vieillissement sont signalés. ";
+ $("reading").textContent=reading;
+ const rec=[];
+ if(dehyd>=4)rec.push("restauration de l'hydratation et de la barrière cutanée");
+ if(sens>=4||red>=4)rec.push("routine douce et réduction des facteurs irritants");
+ if(blem>=4||pores>=4)rec.push("prise en charge de la congestion/comédons et de la texture");
+ if(pig>=4)rec.push("photoprotection stricte et stratégie dépigmentante adaptée");
+ if(age>=4)rec.push("prévention et traitement du photo-vieillissement selon l'examen");
+ if(texture>=4||scar>=4)rec.push("évaluation de la texture et des cicatrices pour une stratégie procédurale");
+ $("advice").textContent=rec.length?rec.join(" • "):"Entretien, photoprotection et routine personnalisée selon l'examen clinique.";
+ $("priorities").textContent="Confirmer le phototype, l'état de la barrière, les lésions actives et les contre-indications avant tout acte de médecine esthétique.";
+ $("quiz").classList.add("hidden");$("result").classList.remove("hidden");window.scrollTo({top:0,behavior:"smooth"});
+}
+function restart(){i=0;answers=Array(questions.length).fill(null);$("result").classList.add("hidden");$("quiz").classList.remove("hidden");render();window.scrollTo({top:0,behavior:"smooth"})}
+render();
+</script>
+</body>
+</html>
