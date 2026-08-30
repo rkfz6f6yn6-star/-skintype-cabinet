@@ -25,6 +25,17 @@ button{border:0;border-radius:13px;padding:14px 16px;font:inherit;font-weight:75
 @media(max-width:560px){.grid{grid-template-columns:1fr}.full{grid-column:auto}}
 @media print{body{background:#fff}.no-print{display:none!important}.card{box-shadow:none}}
 </style>
+
+<style>
+.photo-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:15px 0}
+.photo-card{border:1px solid var(--line);border-radius:16px;padding:10px;background:#fbfdfc}
+.photo-card img{width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:11px;background:#eef3f1}
+.photo-card b{display:block;margin:7px 2px 2px}.photo-card small{color:var(--muted)}
+.face-map{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin:15px 0}
+.face-map button{background:#edf3f1;border:1px solid var(--line)}
+.face-map button:active{background:var(--al)}
+@media(max-width:560px){.photo-grid{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
 <main>
@@ -50,6 +61,50 @@ button{border:0;border-radius:13px;padding:14px 16px;font:inherit;font-weight:75
 <div class="progress"><i id="qbar"></i></div>
 <div id="qcontent"></div>
 <div class="actions"><button class="secondary" id="back">Précédent</button><button class="primary" id="forward">Suivant</button></div>
+</section>
+
+
+<section id="photos" class="card hidden">
+<h2>2. Séance photographique</h2>
+<p class="muted">Prise de vues standardisée directement depuis l’iPhone/iPad. Les photos sont conservées uniquement dans la session du navigateur dans cette version.</p>
+<div class="notice">📸 Autorise Safari à accéder à l’appareil photo. Pour des comparaisons fiables, utilise si possible le même éclairage, la même distance, la même expression et le même cadrage.</div>
+<div id="photoGrid" class="photo-grid"></div>
+<div class="actions no-print">
+<button class="primary" onclick="openCamera('face')">📷 Prendre la photo de face</button>
+<button class="secondary" onclick="openCamera('threeR')">📷 ¾ droit</button>
+<button class="secondary" onclick="openCamera('threeL')">📷 ¾ gauche</button>
+<button class="secondary" onclick="openCamera('profileR')">📷 Profil droit</button>
+<button class="secondary" onclick="openCamera('profileL')">📷 Profil gauche</button>
+</div>
+<input id="cameraInput" type="file" accept="image/*" capture="user" style="display:none" onchange="saveCameraPhoto(event)">
+<div class="actions no-print">
+<button class="primary" onclick="showPhotoAnalysis()">Poursuivre vers l’analyse esthétique</button>
+</div>
+</section>
+
+<section id="photoAnalysis" class="card hidden">
+<h2>3. Cartographie & analyse esthétique</h2>
+<p class="muted">Sélectionne les zones à examiner. Les propositions sont des aides à la décision et doivent être validées par le médecin.</p>
+<div class="face-map">
+<button onclick="zone('front')">Front</button><button onclick="zone('glabella')">Glabelle</button>
+<button onclick="zone('eyes')">Périoculaire</button><button onclick="zone('cheeks')">Pommettes</button>
+<button onclick="zone('tear')">Vallée des larmes</button><button onclick="zone('folds')">Sillons</button>
+<button onclick="zone('lips')">Lèvres</button><button onclick="zone('chin')">Menton</button>
+<button onclick="zone('jaw')">Ovale</button><button onclick="zone('neck')">Cou</button>
+</div>
+<div id="zonePanel" class="hidden">
+<h3 id="zoneTitle"></h3>
+<div class="grid">
+<div><label>Intensité de la problématique</label><select id="zoneSeverity"><option>Absente</option><option>Légère</option><option>Modérée</option><option>Importante</option></select></div>
+<div><label>Nature principale</label><select id="zoneNature"><option>Rides dynamiques</option><option>Perte de volume</option><option>Qualité cutanée</option><option>Relâchement</option><option>Dyschromie</option><option>Texture</option><option>Asymétrie</option></select></div>
+<div class="full"><label>Observation du médecin</label><textarea id="zoneNote"></textarea></div>
+</div>
+<button class="primary no-print" onclick="saveZone()">Enregistrer cette zone</button>
+</div>
+<div id="zoneSummary"></div>
+<div id="recommendations"></div>
+<div class="notice">⚠️ L’analyse photo ne remplace pas l’examen clinique. Ne pas utiliser l’outil pour conclure à une indication ou à une contre-indication sans validation médicale.</div>
+<div class="actions no-print"><button class="primary" onclick="showFinalProtocols()">Générer les propositions de protocole</button></div>
 </section>
 
 <section id="analysis" class="card hidden">
@@ -138,8 +193,44 @@ const protocols=[
 ["Photo-vieillissement","Vieillissement / exposition solaire","Photoprotection → topiques → combinaison de procédures selon rides, texture et laxité.","Rechercher lésions suspectes avant traitement esthétique."],
 ["Fermeté / relâchement","Perte de fermeté","Évaluation anatomique → stratégie de stimulation tissulaire et/ou appareils selon indication.","Le protocole dépend de l'anatomie, de l'âge et des objectifs."]
 ];
+
+let cameraTarget=null, photoData={}, zones={};
+const photoLabels={face:"Face",threeR:"¾ droit",threeL:"¾ gauche",profileR:"Profil droit",profileL:"Profil gauche"};
+function showPhotos(){ $("analysis").classList.add("hidden");$("photos").classList.remove("hidden");renderPhotos();scrollTo(0,0)}
+function openCamera(target){cameraTarget=target;const i=$("cameraInput");i.value="";i.click()}
+function saveCameraPhoto(e){
+ const f=e.target.files&&e.target.files[0];if(!f||!cameraTarget)return;
+ const r=new FileReader();r.onload=()=>{photoData[cameraTarget]=r.result;renderPhotos()};r.readAsDataURL(f);
+}
+function renderPhotos(){
+ $("photoGrid").innerHTML=Object.keys(photoLabels).map(k=>photoData[k]?`<div class="photo-card"><img src="${photoData[k]}"><b>${photoLabels[k]}</b><small>Photo enregistrée dans cette session</small></div>`:`<div class="photo-card"><div style="aspect-ratio:4/5;display:grid;place-items:center;background:#eef3f1;border-radius:11px;color:#6b7b78">Pas encore de photo</div><b>${photoLabels[k]}</b></div>`).join("");
+}
+function showPhotoAnalysis(){ $("photos").classList.add("hidden");$("photoAnalysis").classList.remove("hidden");renderZones();scrollTo(0,0)}
+function zone(z){window.currentZone=z;$("zonePanel").classList.remove("hidden");$("zoneTitle").textContent=z.charAt(0).toUpperCase()+z.slice(1);if(zones[z]){$("zoneSeverity").value=zones[z].severity;$("zoneNature").value=zones[z].nature;$("zoneNote").value=zones[z].note}else{$("zoneSeverity").value="Absente";$("zoneNature").value="Rides dynamiques";$("zoneNote").value=""}}
+function saveZone(){let z=window.currentZone;if(!z)return;zones[z]={severity:$("zoneSeverity").value,nature:$("zoneNature").value,note:$("zoneNote").value};renderZones();generateRecommendations()}
+function renderZones(){$("zoneSummary").innerHTML=Object.keys(zones).length?'<h3>Zones enregistrées</h3>'+Object.entries(zones).map(([z,v])=>`<span class="pill">${z} · ${v.severity} · ${v.nature}</span>`).join(""):"<p class='muted'>Aucune zone enregistrée.</p>"}
+function generateRecommendations(){
+ let rec=[];
+ const sev=z=>zones[z]&&["Modérée","Importante"].includes(zones[z].severity);
+ if(sev("front"))rec.push(["Front","Toxine botulique","Rides d’expression rapportées comme modérées/importantes.","Valider l’anatomie, la dynamique musculaire et les contre-indications."]);
+ if(sev("glabella"))rec.push(["Glabelle","Toxine botulique","Rides intersourcilières.","Évaluation clinique indispensable."]);
+ if(sev("eyes"))rec.push(["Périoculaire","Toxine botulique ou stratégie de qualité cutanée","Selon dynamique, texture et anatomie.","Choix et indication à valider."]);
+ if(sev("cheeks"))rec.push(["Pommettes","Acide hyaluronique / biostimulation","Perte de volume ou qualité tissulaire selon observation.","Évaluer volumes, symétrie et risques vasculaires."]);
+ if(sev("tear"))rec.push(["Vallée des larmes","Acide hyaluronique ou stratégie non injectable","À discuter selon anatomie et qualité cutanée.","Zone à haut enjeu anatomique : décision médicale stricte."]);
+ if(sev("folds"))rec.push(["Sillons","Acide hyaluronique / stratégie tissulaire","Correction d’un pli visible.","Analyser causes, volumes et plans avant toute injection."]);
+ if(sev("lips"))rec.push(["Lèvres","Acide hyaluronique / Skinbooster","Volume, définition ou qualité cutanée selon objectif.","Objectif esthétique à préciser et validation médicale."]);
+ if(sev("jaw"))rec.push(["Ovale","Biostimulation / dispositif / stratégie volumétrique","Relâchement ou perte de définition.","Choix dépendant de l’anatomie."]);
+ if(sev("neck"))rec.push(["Cou","Skinbooster / biostimulation / toxine selon indication","Qualité cutanée, bandes ou relâchement selon constat.","Examen clinique requis."]);
+ if(profileData.dehyd>=3)rec.push(["Qualité globale","Skinbooster","Déshydratation élevée au questionnaire.","Confirmer l’indication et le produit."]);
+ if(!rec.length)rec.push(["Aucune proposition prioritaire","Optimisation cosmétique et photoprotection","Les données saisies ne font pas ressortir de cible procédurale forte.","Réévaluation clinique."]);
+ $("recommendations").innerHTML="<h3>Propositions issues de la cartographie</h3>"+rec.map((r,i)=>`<div class="protocol selected" data-rec="${i}"><h4>${r[0]} — ${r[1]}</h4><p>${r[2]}</p><small>${r[3]}</small><br><button onclick="validateRec(this)">✓ Validé par le médecin</button></div>`).join("");
+ window.recs=rec;
+}
+function validateRec(b){const on=b.parentElement.classList.toggle("selected");b.textContent=on?"✓ Validé par le médecin":"✕ Refusé / à revoir"}
+function showFinalProtocols(){generateRecommendations();$("photoAnalysis").classList.add("hidden");$("protocols").classList.remove("hidden");goProtocols();scrollTo(0,0)}
+
 function goProtocols(){
- $("analysis").classList.add("hidden");$("protocols").classList.remove("hidden");$("protocolList").innerHTML="";
+ $("analysis").classList.add("hidden");$("photoAnalysis").classList.add("hidden");$("photos").classList.add("hidden");$("protocols").classList.remove("hidden");$("protocolList").innerHTML="";
  protocols.forEach((p,n)=>{
    let relevant=(n===0&&profileData.dehyd>=3)||(n===1&&(profileData.sens>=3||profileData.red>=3))||(n===2&&(profileData.blem>=3||profileData.pores>=3))||(n===3&&profileData.pig>=3)||(n===4&&(profileData.texture>=3||profileData.scar>=3))||(n===5&&profileData.age>=3)||(n===6&&profileData.age>=3);
    let d=document.createElement("div");d.className="protocol"+(relevant?" selected":"");d.innerHTML=`<h4>${p[0]} ${relevant?"— recommandé":" "}</h4><small>Indication : ${p[1]}</small><p>${p[2]}</p><small>${p[3]}</small><br><button onclick="toggleProtocol(${n},this)">${relevant?"Retirer du plan":"Ajouter au plan"}</button>`;
